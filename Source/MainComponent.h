@@ -1,4 +1,4 @@
- #pragma once
+#pragma once
 
 #include <JuceHeader.h>
 
@@ -16,6 +16,9 @@ public:
     void paint (Graphics& g) override;
     void resized() override;
 
+    void paintIfNoFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds);
+    void paintIfFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds);
+
 private:
     enum TransportState
     {
@@ -24,8 +27,6 @@ private:
         Stopping,
         Playing
     };
-
-    TransportState state;
 
     void openButtonClicked();                                                                               //Okreœlamy co siê stanie jak przycisk zostanie klikniêty
     void playButtonClicked();
@@ -40,6 +41,10 @@ private:
     TextButton openButton;
     TextButton playButton;
     TextButton stopButton;
+
+    TransportState state;
+    AudioThumbnailCache thumbnailCache;    
+    AudioThumbnail thumbnail;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
