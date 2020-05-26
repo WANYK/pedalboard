@@ -3,7 +3,8 @@
 #include <JuceHeader.h>
 
 class MainComponent   : public AudioAppComponent,
-                        public ChangeListener
+                        public ChangeListener,
+                        private Timer
 {
 public:
     MainComponent();
@@ -19,28 +20,33 @@ public:
     void paintIfNoFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds);
     void paintIfFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds);
 
+    
 private:
     enum TransportState
     {
         Stopped,
         Starting,
         Stopping,
-        Playing
+        Playing,
+        Replaying, //<------------------------------------------- kiedy gra/stop i na 0.0
     };
 
-    void openButtonClicked();                                                                               //Okreœlamy co siê stanie jak przycisk zostanie klikniêty
+    void openButtonClicked();                                                                               //OkreÅ“lamy co siÃª stanie jak przycisk zostanie klikniÃªty
     void playButtonClicked();
     void stopButtonClicked();
+    void replayButtonClicked();
     void transportStateChanged(TransportState newState);
-    void changeListenerCallback(ChangeBroadcaster* source) override;                                        //musimy mieæ czyst¹ funkcj¹ wirtualn¹, bo dzie
+    void changeListenerCallback(ChangeBroadcaster* source) override;                                        //musimy mieÃ¦ czystÂ¹ funkcjÂ¹ wirtualnÂ¹, bo dzie
+    void timerCallback();
 
     AudioFormatManager formatManager;                                                                       
-    std::unique_ptr<AudioFormatReaderSource> playSource;                                                    //playSource - miejsce z którego aktualnie odtwarzamy plik
+    std::unique_ptr<AudioFormatReaderSource> playSource;                                                    //playSource - miejsce z ktÃ³rego aktualnie odtwarzamy plik
     AudioTransportSource transport;
 
     TextButton openButton;
     TextButton playButton;
     TextButton stopButton;
+    TextButton replayButton;
 
     TransportState state;
     AudioThumbnailCache thumbnailCache;    

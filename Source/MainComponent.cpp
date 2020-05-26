@@ -1,11 +1,13 @@
 #include "MainComponent.h"
+#include "../JuceLibraryCode/JuceHeader.h"
 
-MainComponent::MainComponent() : state(Stopped), openButton("Open"), playButton("Play"), stopButton("Stop"),
+MainComponent::MainComponent() : state(Stopped), openButton("Open"), playButton("Play"), stopButton("Stop"), replayButton("Replay"),
                                  thumbnailCache(5),                            
                                  thumbnail(512, formatManager, thumbnailCache) 
 {
-    setSize(800, 600);
-    setAudioChannels(0, 2);
+    setSize(1540, 820);
+    setAudioChannels(2, 2);
+    startTimer(40);
 
     thumbnail.addChangeListener(this);
 
@@ -23,6 +25,10 @@ MainComponent::MainComponent() : state(Stopped), openButton("Open"), playButton(
     stopButton.setEnabled(false);
     addAndMakeVisible(&stopButton);
 
+    replayButton.onClick = [this] {replayButtonClicked(); };
+    replayButton.setColour(TextButton::buttonColourId, Colours::grey);
+    addAndMakeVisible(&replayButton);
+
     formatManager.registerBasicFormats();
    //myTransport.addChangeListener(this);
 }
@@ -32,7 +38,7 @@ MainComponent::MainComponent() : state(Stopped), openButton("Open"), playButton(
 
 MainComponent::~MainComponent()
 {
-    shutdownAudio();                                                                        //Wy³¹cza urz¹dzenie audio i usuwa Ÿród³o dŸwiêku
+    shutdownAudio();                                                                        //WyÂ³Â¹cza urzÂ¹dzenie audio i usuwa Å¸rÃ³dÂ³o dÅ¸wiÃªku
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
@@ -42,9 +48,9 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
 
 void MainComponent::openButtonClicked()
 {
-    //Wybraæ plik
+    //WybraÃ¦ plik
     FileChooser chooser("Choose a wav or AIFF File", File::getSpecialLocation(File::userDocumentsDirectory),
-        "*.wav; *.aiff; *.mp3");                                                            //Mo¿emy u¿ywaæ proste pliki WAV i AIFF i MP3
+        "*.wav; *.aiff; *.mp3");                                                            //MoÂ¿emy uÂ¿ywaÃ¦ proste pliki WAV i AIFF i MP3
     //Jezeli zostanie wybrany 
     if (chooser.browseForFileToOpen())
     {
@@ -54,7 +60,7 @@ void MainComponent::openButtonClicked()
         myFile = chooser.getResult();                                                       //Zwraca typ pliku
 
         //Czytaj plik
-        AudioFormatReader* reader = formatManager.createReaderFor(myFile);                  //Tworzymy czytnik, który jest w stanie odczytaæ nasz plik 
+        AudioFormatReader* reader = formatManager.createReaderFor(myFile);                  //Tworzymy czytnik, ktÃ³ry jest w stanie odczytaÃ¦ nasz plik 
 
         //Plik gotowy do grania
         if (reader != nullptr)
@@ -63,7 +69,7 @@ void MainComponent::openButtonClicked()
             transport.setSource(tempSource.get());
             transportStateChanged(Stopped);
             thumbnail.setSource(new FileInputSource(myFile));
-            playSource.reset(tempSource.release());                                         //Tymczasowe zwolnienie Ÿród³a
+            playSource.reset(tempSource.release());                                         //Tymczasowe zwolnienie Å¸rÃ³dÂ³a
         }
     }
 }
@@ -78,6 +84,11 @@ void MainComponent::stopButtonClicked()
     transportStateChanged(Stopping);
 }
 
+void MainComponent::replayButtonClicked()
+{
+    transportStateChanged(Replaying);
+}
+
 void MainComponent::transportStateChanged(TransportState newState)
 {
     if (newState != state)
@@ -87,23 +98,23 @@ void MainComponent::transportStateChanged(TransportState newState)
         switch (state)
         {
         //stopped
-            //Ustawienie na 0 - sprowadzenie utworu na sam pocz¹tek
+            //Ustawienie na 0 - sprowadzenie utworu na sam poczÂ¹tek
         case Stopped:
-            playButton.setEnabled(true);                                                   //Jeœli utwór jest zatrzymany, przycisk odtwarzania jest w³¹czony
+            playButton.setEnabled(true);                                                   //JeÅ“li utwÃ³r jest zatrzymany, przycisk odtwarzania jest wÂ³Â¹czony
             transport.setPosition(0.0);                                                    
             break;
 
         //Playing
-           //play w³¹czony => bo jak gra kawa³ek i w tym czasie
-           //wgram plik to muszê mieæ przycisk start a nie stop
+           //play wÂ³Â¹czony => bo jak gra kawaÂ³ek i w tym czasie
+           //wgram plik to muszÃª mieÃ¦ przycisk start a nie stop
         case Playing:
             playButton.setEnabled(true);
            //stopButton.setEnabled(false);
             break;
 
         //Starting
-            //stop w³¹czone
-            //play wy³¹czone
+            //stop wÂ³Â¹czone
+            //play wyÂ³Â¹czone
         case Starting:
             stopButton.setEnabled(true);
             playButton.setEnabled(false);
@@ -111,18 +122,28 @@ void MainComponent::transportStateChanged(TransportState newState)
             break;
 
         //Stopping
-            //play w³¹czony
-            //stop wy³¹czony
+            //play wÂ³Â¹czony
+            //stop wyÂ³Â¹czony
         case Stopping:
             playButton.setEnabled(true);
             stopButton.setEnabled(false);
+            transport.stop();
+            break;
+
+        //Replaying - gdy gra utwÃ³r
+            //stop wlaczone
+            //play wylaczone
+        case Replaying:
+            stopButton.setEnabled(false);
+            playButton.setEnabled(true);
+            transport.setPosition(0.0);
             transport.stop();
             break;
         }
     }
 }
 
-void MainComponent::changeListenerCallback(ChangeBroadcaster* source)                      //Definiujemy co siê stanie jak nast¹pi¹ zmiany w pliku który czytamy
+void MainComponent::changeListenerCallback(ChangeBroadcaster* source)                      //Definiujemy co siÃª stanie jak nastÂ¹piÂ¹ zmiany w pliku ktÃ³ry czytamy
 {
     if (source == &transport)
     {
@@ -152,11 +173,17 @@ void MainComponent::releaseResources()
 
 }
 
+void MainComponent::timerCallback()
+{
+    repaint();
+}
+
+
 void MainComponent::paint (Graphics& g)
 {
-    g.fillAll (Colours::black);                                                            //T³o
+    g.fillAll(Colours::lightgrey);
 
-    Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, 120);
+    Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, 170);
 
     if (thumbnail.getNumChannels() == 0)
         paintIfNoFileLoaded(g, thumbnailBounds);
@@ -164,31 +191,49 @@ void MainComponent::paint (Graphics& g)
         paintIfFileLoaded(g, thumbnailBounds);
 }
 
+
 void MainComponent::paintIfNoFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds)
 {
     g.setColour(Colours::darkgrey);
     g.fillRect(thumbnailBounds);
     g.setColour(Colours::white);
     g.drawFittedText("No File Loaded", thumbnailBounds, Justification::centred, 1.0f);
+
+    g.setColour(Colours::orange);
+    g.drawLine(10, 275, getWidth() - 10, 275, 10);
+    g.drawLine(10, 95, getWidth() - 10, 95, 10);
 }
 
 void MainComponent::paintIfFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds)
 {
-    g.setColour(Colours::white);
+    g.setColour(Colours::black);
     g.fillRect(thumbnailBounds);
 
     g.setColour(Colours::red);
+    auto audioLength(thumbnail.getTotalLength());
 
     thumbnail.drawChannels(g,
         thumbnailBounds,
         0.0,                                                                              // czas startu
         thumbnail.getTotalLength(),                                                       // koniec
         1.0f);
+
+    g.setColour(Colours::lightgreen);
+    auto audioPosition(transport.getCurrentPosition());
+    auto drawPosition((audioPosition / audioLength) * thumbnailBounds.getWidth()
+        + thumbnailBounds.getX());
+    g.drawLine(drawPosition, thumbnailBounds.getY(), drawPosition,
+        thumbnailBounds.getBottom(), 2.0f);
+
+    g.setColour(Colours::orange);
+    g.drawLine(10, 275, getWidth() - 10, 275, 10);
+    g.drawLine(10, 95, getWidth() - 10, 95, 10);
 }
 
 void MainComponent::resized()
 {
-    openButton.setBounds(10, 10, 50, 30);                                                 // x, y, szerokoœæ, wysokoœæ
-    playButton.setBounds(690, 250, 50, 30);
-    stopButton.setBounds(800, 250, 50, 30);
+    openButton.setBounds(10, 10, 50, 30);                                                 // x, y, szerokoÅ“Ã¦, wysokoÅ“Ã¦
+    playButton.setBounds(675, 300 ,50, 30);
+    stopButton.setBounds(818, 300, 50, 30);
+    replayButton.setBounds(742, 300, 60, 30);
 }
