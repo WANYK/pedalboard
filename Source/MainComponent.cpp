@@ -1,10 +1,14 @@
 #include "MainComponent.h"
 #include "../JuceLibraryCode/JuceHeader.h"
 
-MainComponent::MainComponent() : state(Stopped), openButton("Open"), playButton("Play"), stopButton("Stop"), replayButton("Replay"),
-                                 thumbnailCache(5),                            
-                                 thumbnail(512, formatManager, thumbnailCache) 
+MainComponent::MainComponent() : juce::AudioAppComponent(otherDeviceManager), state(Stopped), openButton("Open"), playButton("Play"), stopButton("Stop"), replayButton("Replay"),
+thumbnailCache(5),
+thumbnail(512, formatManager, thumbnailCache)
 {
+    otherDeviceManager.initialise(2, 2, nullptr, true);
+    audioSettings.reset(new AudioDeviceSelectorComponent(otherDeviceManager, 0, 2, 0, 2,true,true,true,true));
+    addAndMakeVisible(audioSettings.get());
+
     setSize(1540, 820);
     setAudioChannels(2, 2);
     startTimer(40);
@@ -30,7 +34,7 @@ MainComponent::MainComponent() : state(Stopped), openButton("Open"), playButton(
     addAndMakeVisible(&replayButton);
 
     formatManager.registerBasicFormats();
-   //myTransport.addChangeListener(this);
+    //myTransport.addChangeListener(this);
 }
 
 
@@ -97,42 +101,42 @@ void MainComponent::transportStateChanged(TransportState newState)
 
         switch (state)
         {
-        //stopped
-            //Ustawienie na 0 - sprowadzenie utworu na sam pocz¹tek
+            //stopped
+                //Ustawienie na 0 - sprowadzenie utworu na sam pocz¹tek
         case Stopped:
             playButton.setEnabled(true);                                                   //Jeœli utwór jest zatrzymany, przycisk odtwarzania jest w³¹czony
-            transport.setPosition(0.0);                                                    
+            transport.setPosition(0.0);
             break;
 
-        //Playing
-           //play w³¹czony => bo jak gra kawa³ek i w tym czasie
-           //wgram plik to muszê mieæ przycisk start a nie stop
+            //Playing
+               //play w³¹czony => bo jak gra kawa³ek i w tym czasie
+               //wgram plik to muszê mieæ przycisk start a nie stop
         case Playing:
             playButton.setEnabled(true);
-           //stopButton.setEnabled(false);
+            //stopButton.setEnabled(false);
             break;
 
-        //Starting
-            //stop w³¹czone
-            //play wy³¹czone
+            //Starting
+                //stop w³¹czone
+                //play wy³¹czone
         case Starting:
             stopButton.setEnabled(true);
             playButton.setEnabled(false);
             transport.start();
             break;
 
-        //Stopping
-            //play w³¹czony
-            //stop wy³¹czony
+            //Stopping
+                //play w³¹czony
+                //stop wy³¹czony
         case Stopping:
             playButton.setEnabled(true);
             stopButton.setEnabled(false);
             transport.stop();
             break;
 
-        //Replaying - gdy gra utwór
-            //stop wlaczone
-            //play wylaczone
+            //Replaying - gdy gra utwór
+                //stop wlaczone
+                //play wylaczone
         case Replaying:
             stopButton.setEnabled(false);
             playButton.setEnabled(true);
@@ -162,7 +166,7 @@ void MainComponent::changeListenerCallback(ChangeBroadcaster* source)           
     }
 }
 
-void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
+void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     bufferToFill.clearActiveBufferRegion();
     transport.getNextAudioBlock(bufferToFill);
@@ -179,9 +183,9 @@ void MainComponent::timerCallback()
 }
 
 
-void MainComponent::paint (Graphics& g)
+void MainComponent::paint(Graphics& g)
 {
-    g.fillAll(Colours::lightgrey);
+    g.fillAll(Colours::rebeccapurple);
 
     Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, 170);
 
@@ -206,10 +210,10 @@ void MainComponent::paintIfNoFileLoaded(Graphics& g, const Rectangle<int>& thumb
 
 void MainComponent::paintIfFileLoaded(Graphics& g, const Rectangle<int>& thumbnailBounds)
 {
-    g.setColour(Colours::black);
+    g.setColour(Colours::white);
     g.fillRect(thumbnailBounds);
 
-    g.setColour(Colours::red);
+    g.setColour(Colours::orange);
     auto audioLength(thumbnail.getTotalLength());
 
     thumbnail.drawChannels(g,
@@ -233,7 +237,9 @@ void MainComponent::paintIfFileLoaded(Graphics& g, const Rectangle<int>& thumbna
 void MainComponent::resized()
 {
     openButton.setBounds(10, 10, 50, 30);                                                 // x, y, szerokoœæ, wysokoœæ
-    playButton.setBounds(675, 300 ,50, 30);
+    playButton.setBounds(675, 300, 50, 30);
     stopButton.setBounds(818, 300, 50, 30);
     replayButton.setBounds(742, 300, 60, 30);
+    audioSettings->setBounds(10, 350, 500, 100);
+
 }
