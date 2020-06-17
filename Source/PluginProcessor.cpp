@@ -283,13 +283,14 @@ bool ChorusAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) co
     ignoreUnused(layouts);
     return true;
 #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
+// To miejsce, w którym sprawdzasmy, czy układ jest obsługiwany.
+    // W tym kodzie szablonu obsługujemy tylko mono lub stereo.
     if (layouts.getMainOutputChannelSet() != AudioChannelSet::mono()
         && layouts.getMainOutputChannelSet() != AudioChannelSet::stereo())
         return false;
 
-    // This checks if the input layout matches the output layout
+    
+//To sprawdza, czy układ wejściowy pasuje do układu wyjściowego
 #if ! JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
@@ -343,8 +344,7 @@ double ChorusAudioProcessor::getTailLengthSeconds() const
 
 int ChorusAudioProcessor::getNumPrograms()
 {
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
+    return 1;   
 }
 
 int ChorusAudioProcessor::getCurrentProgram()
