@@ -15,15 +15,24 @@
 
 DistortionAudioProcessor::DistortionAudioProcessor() :
     AudioProcessor(BusesProperties()
+        //wejscie typu stereo
         .withInput("Input", AudioChannelSet::stereo(), true)
+        //wyjscie typu mono
         .withOutput("Output", AudioChannelSet::stereo(), true)
         ),
     Parameters(*this),
+    //lista wyboru
     paramDistortionType(Parameters, "Distortion type", distortionTypeItemsUI),
+    //pierwszy slider, ktorym mozemy ustawiac gain na wejsciu
+    //zakres od -24 do 24 dB, a 12 dB jest ustawione automatycznie przy uruchomieniu programu
     paramInputGain(Parameters, "Input gain", "dB", -24.0f, 24.0f, 12.0f,
         [](float value) { return powf(10.0f, value * 0.05f); }),
+    //drugi slider, ktorym mozemy ustawiac gain na wyjsciu
+    //zakres od -24 do 24 dB, a -24 dB jest ustawione automatycznie przy uruchomieniu programu
     paramOutputGain(Parameters, "Output gain", "dB", -24.0f, 24.0f, -24.0f,
         [](float value) { return powf(10.0f, value * 0.05f); }),
+    //trzeci slider, ktorym mozemy ustawiac tone
+    //zakres od -24 do 24 dB, a 12 dB jest ustawione automatycznie przy uruchomieniu programu
     paramTone(Parameters, "Tone", "dB", -24.0f, 24.0f, 12.0f,
         [this](float value)
         {
@@ -77,6 +86,7 @@ DistortionAudioProcessor::DistortionAudioProcessor() :
 
                     switch ((int)paramDistortionType.getTargetValue())
                     {
+                    //przypisanie nowej wartosci po przekroczeniu danego progu
                     case distortionTypeHardClipping:
                     {
                         float threshold = 0.5f;
@@ -89,6 +99,7 @@ DistortionAudioProcessor::DistortionAudioProcessor() :
                         break;
                     }
 
+                    //obciecie sygnalu ktory znajduje sie ponizej 0
                     case distortionTypeHalfWaveRectifier:
                     {
                         if (in > 0.0f)

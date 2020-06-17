@@ -15,6 +15,7 @@ public:
 private:
     DistortionAudioProcessor& processor;
 
+    //deklaracja wielkosci sliderow i okienka programu
     enum
     {
         editorWidth = 500,

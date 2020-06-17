@@ -16,12 +16,14 @@ DistortionAudioProcessorEditor::DistortionAudioProcessorEditor(DistortionAudioPr
     const Array<AudioProcessorParameter*> Parameters = processor.getParameters();
     int comboBoxCounter = 0;
 
+    //staly rozmiar edytora
     int editorHeight = 2 * editorMargin;
     for (int i = 0; i < Parameters.size(); ++i)
     {
         if (const AudioProcessorParameterWithID* parameter =
             dynamic_cast<AudioProcessorParameterWithID*> (Parameters[i]))
         {
+            //slidery
             if (processor.Parameters.Types[i] == "Slider")
             {
                 Slider* aSlider;
@@ -40,6 +42,7 @@ DistortionAudioProcessorEditor::DistortionAudioProcessorEditor(DistortionAudioPr
                 editorHeight += sliderHeight;
             }
 
+            //guzik opcji
             else if (processor.Parameters.Types[i] == "ToggleButton")
             {
                 ToggleButton* aButton;
@@ -54,12 +57,13 @@ DistortionAudioProcessorEditor::DistortionAudioProcessorEditor(DistortionAudioPr
                 editorHeight += buttonHeight;
             }
 
+            //lista wyboru
             else if (processor.Parameters.Types[i] == "ComboBox")
             {
                 ComboBox* aComboBox;
                 comboBoxes.add(aComboBox = new ComboBox());
                 aComboBox->setEditableText(false);
-                aComboBox->setJustificationType(Justification::left);
+                aComboBox->setJustificationType(Justification::centred);
                 aComboBox->addItemList(processor.Parameters.boxLists[comboBoxCounter++], 1);
 
                 ComboBoxAttachment* aComboBoxAttachment;
@@ -89,6 +93,7 @@ DistortionAudioProcessorEditor::~DistortionAudioProcessorEditor()
 {
 }
 
+//funkcja rysujaca nasz program, nadajaca jemu kolory
 void DistortionAudioProcessorEditor::paint(Graphics& g)
 {
     g.fillAll(getLookAndFeel().findColour(ResizableWindow::backgroundColourId));
@@ -97,16 +102,21 @@ void DistortionAudioProcessorEditor::paint(Graphics& g)
 
 void DistortionAudioProcessorEditor::resized()
 {
+    //deklarujemy prostokat naszego programu
     Rectangle<int> r = getLocalBounds().reduced(editorMargin);
     r = r.removeFromRight(r.getWidth() - labelWidth);
 
-    for (int i = 0; i < components.size(); ++i) {
+    for (int i = 0; i < components.size(); ++i) 
+    {
+        //deklaracja sliderow
         if (Slider* aSlider = dynamic_cast<Slider*> (components[i]))
             components[i]->setBounds(r.removeFromTop(sliderHeight));
 
+        //deklaracja guzika opcji
         if (ToggleButton* aButton = dynamic_cast<ToggleButton*> (components[i]))
             components[i]->setBounds(r.removeFromTop(buttonHeight));
-
+        
+        //deklaracja listy wyboru gain
         if (ComboBox* aComboBox = dynamic_cast<ComboBox*> (components[i]))
             components[i]->setBounds(r.removeFromTop(comboBoxHeight));
 
