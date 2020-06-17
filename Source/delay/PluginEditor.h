@@ -16,19 +16,22 @@
 //==============================================================================
 /**
 */
+//klasa DelayAudioProcessorEditor
 class DelayAudioProcessorEditor : public AudioProcessorEditor
 {
 public:
+//konstruktor
     DelayAudioProcessorEditor(DelayAudioProcessor&);
+//destruktor
     ~DelayAudioProcessorEditor();
 
     //==============================================================================
+//do wersji graficznej
     void paint(Graphics&) override;
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+//szybki sposob dostępu do obiektu procesora
     DelayAudioProcessor& processor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DelayAudioProcessorEditor)

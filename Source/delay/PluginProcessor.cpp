@@ -21,6 +21,7 @@ String DelayAudioProcessor::paramFeedback("feedback");
 DelayAudioProcessor::DelayAudioProcessor()
     : mState(*this, &mUndoManager, "FFTapeDelay",
         {
+//dla gain
             std::make_unique<AudioParameterFloat>(paramGain,
                                                   TRANS("Input Gain"),
                                                   NormalisableRange<float>(-100.0f, 6.0f, 0.1f, std::log(0.5f) / std::log(100.0f / 106.0f)),
@@ -28,12 +29,14 @@ DelayAudioProcessor::DelayAudioProcessor()
                                                   AudioProcessorParameter::genericParameter,
                                                   [](float v, int) { return String(v, 1) + " dB"; },
                                                   [](const String& t) { return t.dropLastCharacters(3).getFloatValue(); }),
+//dla time
             std::make_unique<AudioParameterFloat>(paramTime,
                                                   TRANS("Delay TIme"),    NormalisableRange<float>(0.0, 2000.0, 1.0),
                                                   mdtime.get(), "ms",
                                                   AudioProcessorParameter::genericParameter,
                                                   [](float v, int) { return String(roundToInt(v)) + " ms"; },
                                                   [](const String& t) { return t.dropLastCharacters(3).getFloatValue(); }),
+//dla feedback
             std::make_unique<AudioParameterFloat>(paramFeedback,
                                                   TRANS("Feedback Gain"), NormalisableRange<float>(-100.0f, 6.0f, 0.1f, std::log(0.5f) / std::log(100.0f / 106.0f)),
                                                   mdfeedback.get(), "dB", AudioProcessorParameter::genericParameter,
@@ -41,8 +44,11 @@ DelayAudioProcessor::DelayAudioProcessor()
                                                   [](const String& t) { return t.dropLastCharacters(3).getFloatValue(); })
         })
 {
+//wywołanie zwrotne gain
     mState.addParameterListener(paramGain, this);
+//wywołanie zwrotne time
     mState.addParameterListener(paramTime, this);
+//wywołanie zwrotne feedback
     mState.addParameterListener(paramFeedback, this);
 }
 
@@ -58,7 +64,7 @@ void DelayAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
     mdsample_rate = sampleRate;
 
-    // sample buffer for 2 seconds + 2 buffers safety
+    // sample buffer dla 2 sekund + 2 buffers safety
     mDelayBuffer.setSize(getTotalNumOutputChannels(), 2.0 * (samplesPerBlock + sampleRate), false, false);
     mDelayBuffer.clear();
 
@@ -73,12 +79,15 @@ void DelayAudioProcessor::releaseResources()
 
 void DelayAudioProcessor::parameterChanged(const String& parameterID, float newValue)
 {
+//jeśli parametr Gain jest zmieniany przypisuje mu nową wartosc
     if (parameterID == paramGain) {
         mdgain = newValue;
     }
+//jeśli parametr Time jest zmieniany przypisuje mu nową wartosc
     else if (parameterID == paramTime) {
         mdtime = newValue;
     }
+//jeśli parametr Feedback jest zmieniany przypisuje mu nową wartosc
     else if (parameterID == paramFeedback) {
         mdfeedback = newValue;
     }
@@ -86,14 +95,14 @@ void DelayAudioProcessor::parameterChanged(const String& parameterID, float newV
 
 bool DelayAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    // we only support stereo and mono
+    // wejscia i wyjscia, tylko dla stereo and mono
     if (layouts.getMainInputChannels() == 0 || layouts.getMainInputChannels() > 2)
         return false;
 
     if (layouts.getMainOutputChannels() == 0 || layouts.getMainOutputChannels() > 2)
         return false;
 
-    // we don't allow the narrowing the number of channels
+    // nie zezwalamy na zawężanie liczby kanałów
     if (layouts.getMainInputChannels() > layouts.getMainOutputChannels())
         return false;
 
@@ -108,28 +117,28 @@ void DelayAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& mi
         const float time = mdtime.get();
         const float feedback = Decibels::decibelsToGain(mdfeedback.get());
 
-        // write original to delay
+        // orginał do delay
         for (int i = 0; i < mDelayBuffer.getNumChannels(); ++i)
         {
             const int inputChannelNum = inputBus->getChannelIndexInProcessBlockBuffer(std::min(i, inputBus->getNumberOfChannels()));
             writeToDelayBuffer(buffer, inputChannelNum, i, mdwrite_position, 1.0f, 1.0f, true);
         }
 
-        // adapt dry gain
+        // dostosowanie wzmocnienie na sucho
         buffer.applyGainRamp(0, buffer.getNumSamples(), mdlast_input_gain, gain);
         mdlast_input_gain = gain;
 
-        // read delayed signal
+        // czytanie opoznionego sygnału
         auto readPos = roundToInt(mdwrite_position - (mdsample_rate * time / 1000.0));
         if (readPos < 0)
             readPos += mDelayBuffer.getNumSamples();
 
         if (Bus* outputBus = getBus(false, 0))
         {
-            // if has run before
+            // jesli wczesniej wlaczone
             if (mdexpected_read_position >= 0)
             {
-                // fade out if readPos is off
+                // znikną, jeśli readPos jest wyłączone
                 auto endGain = (readPos == mdexpected_read_position) ? 1.0f : 0.0f;
                 for (int i = 0; i < outputBus->getNumberOfChannels(); ++i)
                 {
@@ -138,7 +147,7 @@ void DelayAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& mi
                 }
             }
 
-            // fade in at new position
+            // znikną w nowej pozycji
             if (readPos != mdexpected_read_position)
             {
                 for (int i = 0; i < outputBus->getNumberOfChannels(); ++i)
@@ -149,7 +158,7 @@ void DelayAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& mi
             }
         }
 
-        // add feedback to delay
+        // dodanie feedback do delay
         for (int i = 0; i < inputBus->getNumberOfChannels(); ++i)
         {
             const int outputChannelNum = inputBus->getChannelIndexInProcessBlockBuffer(i);
@@ -167,7 +176,7 @@ void DelayAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& mi
             mdexpected_read_position -= mDelayBuffer.getNumSamples();
     }
 }
-
+//Zapisuje dokument do pliku jako UTF-8
 void DelayAudioProcessor::writeToDelayBuffer(AudioSampleBuffer& buffer,
     const int channelIn, const int channelOut,
     const int writePos, float startGain, float endGain, bool replacing)
@@ -175,8 +184,10 @@ void DelayAudioProcessor::writeToDelayBuffer(AudioSampleBuffer& buffer,
     if (writePos + buffer.getNumSamples() <= mDelayBuffer.getNumSamples())
     {
         if (replacing)
+//Kopiuje próbki z szeregu liczb zmiennoprzecinkowych kanalu channelout, stosując rampę wzmocnienia
             mDelayBuffer.copyFromWithRamp(channelOut, writePos, buffer.getReadPointer(channelIn), buffer.getNumSamples(), startGain, endGain);
         else
+//Dodaje próbki z szeregu liczb zmiennoprzecinkowych, stosując do nich rampę wzmocnienia
             mDelayBuffer.addFromWithRamp(channelOut, writePos, buffer.getReadPointer(channelIn), buffer.getNumSamples(), startGain, endGain);
     }
     else
@@ -185,11 +196,13 @@ void DelayAudioProcessor::writeToDelayBuffer(AudioSampleBuffer& buffer,
         const auto midGain = jmap(float(midPos) / buffer.getNumSamples(), startGain, endGain);
         if (replacing)
         {
+//Kopiuje próbki z szeregu liczb zmiennoprzecinkowych channelout, stosując rampę wzmocnienia
             mDelayBuffer.copyFromWithRamp(channelOut, writePos, buffer.getReadPointer(channelIn), midPos, startGain, midGain);
             mDelayBuffer.copyFromWithRamp(channelOut, 0, buffer.getReadPointer(channelIn, midPos), buffer.getNumSamples() - midPos, midGain, endGain);
         }
         else
         {
+//Dodaje próbki z szeregu liczb zmiennoprzecinkowych, stosując do nich rampę wzmocnienia
             mDelayBuffer.addFromWithRamp(channelOut, writePos, buffer.getReadPointer(channelIn), midPos, mdlast_input_gain, midGain);
             mDelayBuffer.addFromWithRamp(channelOut, 0, buffer.getReadPointer(channelIn, midPos), buffer.getNumSamples() - midPos, midGain, endGain);
         }
@@ -205,8 +218,10 @@ void DelayAudioProcessor::readFromDelayBuffer(AudioSampleBuffer& buffer,
     if (readPos + buffer.getNumSamples() <= mDelayBuffer.getNumSamples())
     {
         if (replacing)
+//Kopiuje próbki z szeregu liczb zmiennoprzecinkowych channelout, stosując rampę wzmocnienia
             buffer.copyFromWithRamp(channelOut, 0, mDelayBuffer.getReadPointer(channelIn, readPos), buffer.getNumSamples(), startGain, endGain);
         else
+//Dodaje próbki z szeregu liczb zmiennoprzecinkowych, stosując do nich rampę wzmocnienia
             buffer.addFromWithRamp(channelOut, 0, mDelayBuffer.getReadPointer(channelIn, readPos), buffer.getNumSamples(), startGain, endGain);
     }
     else
@@ -215,11 +230,13 @@ void DelayAudioProcessor::readFromDelayBuffer(AudioSampleBuffer& buffer,
         const auto midGain = jmap(float(midPos) / buffer.getNumSamples(), startGain, endGain);
         if (replacing)
         {
+//Kopiuje próbki z szeregu liczb zmiennoprzecinkowych channelout, stosując rampę wzmocnienia
             buffer.copyFromWithRamp(channelOut, 0, mDelayBuffer.getReadPointer(channelIn, readPos), midPos, startGain, midGain);
             buffer.copyFromWithRamp(channelOut, midPos, mDelayBuffer.getReadPointer(channelIn), buffer.getNumSamples() - midPos, midGain, endGain);
         }
         else
         {
+//Dodaje próbki z szeregu liczb zmiennoprzecinkowych, stosując do nich rampę wzmocnienia
             buffer.addFromWithRamp(channelOut, 0, mDelayBuffer.getReadPointer(channelIn, readPos), midPos, startGain, midGain);
             buffer.addFromWithRamp(channelOut, midPos, mDelayBuffer.getReadPointer(channelIn), buffer.getNumSamples() - midPos, midGain, endGain);
         }
@@ -234,7 +251,7 @@ AudioProcessorValueTreeState& DelayAudioProcessor::getValueTreeState()
 //==============================================================================
 bool DelayAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return true;
 }
 
 AudioProcessorEditor* DelayAudioProcessor::createEditor()
@@ -245,15 +262,15 @@ AudioProcessorEditor* DelayAudioProcessor::createEditor()
 //==============================================================================
 void DelayAudioProcessor::getStateInformation(MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
+    // przechowywanie parametrów w bloku pamięci
     MemoryOutputStream stream(destData, false);
     mState.state.writeToStream(stream);
 }
 
 void DelayAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+// aby przywrócić parametry z tego bloku pamięci,
+// którego zawartość zostanie utworzona przez wywołanie getStateInformation ().
     ValueTree tree = ValueTree::readFromData(data, sizeInBytes);
     if (tree.isValid()) {
         mState.state = tree;
@@ -291,8 +308,7 @@ double DelayAudioProcessor::getTailLengthSeconds() const
 
 int DelayAudioProcessor::getNumPrograms()
 {
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-    // so this should be at least 1, even if you're not really implementing programs.
+    return 1;   
 }
 
 int DelayAudioProcessor::getCurrentProgram()

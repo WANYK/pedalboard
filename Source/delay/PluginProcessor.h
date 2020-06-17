@@ -15,12 +15,15 @@
 //==============================================================================
 /**
 */
+//klasa DelayAudioProcessor
 class DelayAudioProcessor : public AudioProcessor,
     public AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
+//konstruktor
     DelayAudioProcessor();
+//destruktor
     ~DelayAudioProcessor();
 
     //==============================================================================
@@ -83,7 +86,7 @@ private:
 
     UndoManager                  mUndoManager;
     AudioProcessorValueTreeState mState;
-
+//stworzenie buforu do delay
     AudioSampleBuffer            mDelayBuffer;
 
     float mdlast_input_gain = 0.0f;
